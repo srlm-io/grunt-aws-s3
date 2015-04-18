@@ -21,6 +21,8 @@ module.exports = function (grunt) {
 
 	grunt.registerMultiTask('aws_s3', 'Interact with AWS S3 using the AWS SDK', function () {
 
+		var self = this; // Save a reference for later
+
 		var done = this.async();
 
 		var options = this.options({
@@ -851,6 +853,21 @@ module.exports = function (grunt) {
 			if (options.debug) {
 				grunt.log.writeln("\nThe debug option was enabled, no changes have actually been made".yellow);
 			}
+			
+			// Save a list of the uploaded files so that subsequent tasks know which
+			// files have changed. This is useful for Cloudfront invalidation.
+			_.each(objects, function (o) {
+				if (o.action === 'upload') {
+					var dirtyFiles = [];
+					_.each(o.files, function (file) {
+						if (file.need_upload) {
+							dirtyFiles.push(file.dest);
+						}
+					});
+
+					grunt.config.set(self.nameArgs.replace(/:/g, '.') + '.dirtyupload', dirtyFiles);
+				}
+			});
 
 			done();
 		};
